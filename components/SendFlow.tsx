@@ -259,7 +259,7 @@ export default function SendFlow({
             disabled={testnetSending}
             className="w-full py-3 rounded-xl text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50"
           >
-            {testnetSending ? 'Sending On-Chain...' : 'Send On-Chain (Testnet)'}
+            {testnetSending ? 'Sending Onchain...' : 'Send Onchain (Testnet)'}
           </button>
           {testnetError && (
             <p className="text-sm text-red-500 mt-2">{testnetError}</p>

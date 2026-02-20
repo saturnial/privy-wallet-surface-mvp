@@ -12,6 +12,7 @@ export const config = {
     rpcUrl: 'https://sepolia.base.org',
     explorerUrl: 'https://sepolia.basescan.org',
     sendAmountEth: '0.001',
+    usdcAddress: process.env.NEXT_PUBLIC_USDC_ADDRESS || '',
   },
 
   defaultBalanceCents: 125000,

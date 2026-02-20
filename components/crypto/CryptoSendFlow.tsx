@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useWallets } from '@privy-io/react-auth';
-import { User, CryptoTransaction } from '@/lib/types';
+import { User, CryptoTransaction, CryptoAsset } from '@/lib/types';
 import { formatCryptoAmount, truncateAddress, isValidAddress } from '@/lib/utils';
 import { config } from '@/lib/config';
 
@@ -11,10 +11,14 @@ type CryptoSendStep = 'enter-address' | 'enter-amount' | 'confirm' | 'success';
 export default function CryptoSendFlow({
   appUser,
   balanceEth,
+  balanceUsdc,
+  selectedAsset,
   onComplete,
 }: {
   appUser: User;
   balanceEth: string;
+  balanceUsdc: string;
+  selectedAsset: CryptoAsset;
   onComplete: () => void;
 }) {
   const { wallets } = useWallets();
@@ -24,6 +28,8 @@ export default function CryptoSendFlow({
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [resultTxn, setResultTxn] = useState<CryptoTransaction | null>(null);
+
+  const balance = selectedAsset === 'USDC' ? balanceUsdc : balanceEth;
 
   const handleAddressContinue = () => {
     setError('');
@@ -41,7 +47,7 @@ export default function CryptoSendFlow({
       setError('Enter a valid amount');
       return;
     }
-    if (amount > parseFloat(balanceEth)) {
+    if (amount > parseFloat(balance)) {
       setError('Amount exceeds available balance');
       return;
     }
@@ -61,8 +67,14 @@ export default function CryptoSendFlow({
         if (embeddedWallet) {
           await embeddedWallet.switchChain(config.testnet.chainId);
           const provider = await embeddedWallet.getEthereumProvider();
-          const { sendTestnetTransactionWithAmount } = await import('@/lib/wallet');
-          txHash = await sendTestnetTransactionWithAmount(provider, toAddress, amountStr);
+
+          if (selectedAsset === 'USDC' && config.testnet.usdcAddress) {
+            const { sendUsdcTransaction } = await import('@/lib/wallet');
+            txHash = await sendUsdcTransaction(provider, toAddress, amountStr);
+          } else if (selectedAsset === 'ETH') {
+            const { sendTestnetTransactionWithAmount } = await import('@/lib/wallet');
+            txHash = await sendTestnetTransactionWithAmount(provider, toAddress, amountStr);
+          }
         }
       } catch {
         // Fall through to mock if testnet send fails
@@ -75,7 +87,8 @@ export default function CryptoSendFlow({
       body: JSON.stringify({
         userId: appUser.id,
         type: 'send',
-        amountEth: amountStr,
+        asset: selectedAsset,
+        amount: amountStr,
         address: toAddress,
         txHash,
       }),
@@ -97,17 +110,16 @@ export default function CryptoSendFlow({
   if (step === 'enter-address') {
     return (
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Recipient Address</h2>
         <p className="text-sm text-gray-500 mb-4">Enter the Ethereum address to send to.</p>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-gray-50 rounded-xl p-4">
           <label className="block text-sm text-gray-500 mb-2">To Address</label>
           <input
             type="text"
             value={toAddress}
             onChange={(e) => setToAddress(e.target.value)}
             placeholder="0x..."
-            className="w-full text-sm font-mono text-gray-900 outline-none bg-transparent border border-gray-200 rounded-xl px-4 py-3"
+            className="w-full text-sm font-mono text-gray-900 outline-none bg-white border border-gray-200 rounded-xl px-4 py-3"
             autoFocus
           />
         </div>
@@ -128,13 +140,12 @@ export default function CryptoSendFlow({
   if (step === 'enter-amount') {
     return (
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Enter Amount</h2>
         <p className="text-sm text-gray-500 mb-4">
           Sending to <span className="font-mono text-gray-700">{truncateAddress(toAddress)}</span>
         </p>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <label className="block text-sm text-gray-500 mb-2">Amount (ETH)</label>
+        <div className="bg-gray-50 rounded-xl p-4">
+          <label className="block text-sm text-gray-500 mb-2">Amount ({selectedAsset})</label>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -142,14 +153,14 @@ export default function CryptoSendFlow({
               onChange={(e) => setAmountStr(e.target.value)}
               placeholder="0.0"
               min="0"
-              step="0.0001"
+              step={selectedAsset === 'USDC' ? '0.01' : '0.0001'}
               className="text-3xl font-bold text-gray-900 w-full outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               autoFocus
             />
-            <span className="text-lg text-gray-400">ETH</span>
+            <span className="text-lg text-gray-400">{selectedAsset}</span>
           </div>
           <p className="text-xs text-gray-400 mt-2">
-            Available: {formatCryptoAmount(balanceEth)}
+            Available: {formatCryptoAmount(balance, selectedAsset)}
           </p>
         </div>
 
@@ -177,20 +188,18 @@ export default function CryptoSendFlow({
   if (step === 'confirm') {
     return (
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Confirm Transaction</h2>
-
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <div className="bg-gray-50 rounded-xl p-4 space-y-3">
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">To</span>
             <span className="text-sm font-mono font-medium text-gray-900">{truncateAddress(toAddress)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">Amount</span>
-            <span className="text-sm font-medium text-gray-900">{formatCryptoAmount(amountStr)}</span>
+            <span className="text-sm font-medium text-gray-900">{formatCryptoAmount(amountStr, selectedAsset)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">Token</span>
-            <span className="text-sm font-medium text-gray-900">ETH</span>
+            <span className="text-sm font-medium text-gray-900">{selectedAsset}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">Network</span>
@@ -231,7 +240,7 @@ export default function CryptoSendFlow({
 
       <h2 className="text-xl font-bold text-gray-900 mb-1">Transaction Sent</h2>
       <p className="text-sm text-gray-500 mb-4">
-        {formatCryptoAmount(amountStr)} sent to {truncateAddress(toAddress)}
+        {formatCryptoAmount(amountStr, selectedAsset)} sent to {truncateAddress(toAddress)}
       </p>
 
       {resultTxn && (
@@ -252,7 +261,7 @@ export default function CryptoSendFlow({
         onClick={onComplete}
         className="w-full py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
       >
-        Back to Dashboard
+        Done
       </button>
     </div>
   );

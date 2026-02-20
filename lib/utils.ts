@@ -29,9 +29,12 @@ export function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function formatCryptoAmount(eth: string): string {
-  const num = parseFloat(eth);
-  if (isNaN(num)) return '0 ETH';
+export function formatCryptoAmount(value: string, asset: 'ETH' | 'USDC' = 'ETH'): string {
+  const num = parseFloat(value);
+  if (isNaN(num)) return `0 ${asset}`;
+  if (asset === 'USDC') {
+    return `${num.toFixed(2)} USDC`;
+  }
   return `${num.toFixed(num < 0.001 ? 6 : 4)} ETH`;
 }
 

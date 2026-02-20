@@ -33,3 +33,42 @@ export async function sendTestnetTransactionWithAmount(
   await tx.wait();
   return tx.hash;
 }
+
+const ERC20_ABI = [
+  'function transfer(address to, uint256 amount) returns (bool)',
+  'function balanceOf(address owner) view returns (uint256)',
+];
+
+export async function sendUsdcTransaction(
+  walletProvider: ethers.Eip1193Provider,
+  toAddress: string,
+  amountUsdc: string,
+): Promise<string> {
+  if (!config.testnet.usdcAddress) {
+    throw new Error('USDC contract address not configured');
+  }
+
+  const provider = new ethers.BrowserProvider(walletProvider);
+  const signer = await provider.getSigner();
+  const contract = new ethers.Contract(config.testnet.usdcAddress, ERC20_ABI, signer);
+
+  // USDC uses 6 decimals
+  const amount = ethers.parseUnits(amountUsdc, 6);
+  const tx = await contract.transfer(toAddress, amount);
+  await tx.wait();
+  return tx.hash;
+}
+
+export async function getUsdcBalance(
+  walletProvider: ethers.Eip1193Provider,
+  ownerAddress: string,
+): Promise<string> {
+  if (!config.testnet.usdcAddress) {
+    throw new Error('USDC contract address not configured');
+  }
+
+  const provider = new ethers.BrowserProvider(walletProvider);
+  const contract = new ethers.Contract(config.testnet.usdcAddress, ERC20_ABI, provider);
+  const balance: bigint = await contract.balanceOf(ownerAddress);
+  return ethers.formatUnits(balance, 6);
+}

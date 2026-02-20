@@ -11,7 +11,7 @@ export default function CryptoTransactionList({
   if (transactions.length === 0) {
     return (
       <div className="text-center py-8 text-gray-400 text-sm">
-        No on-chain activity yet
+        No onchain activity yet
       </div>
     );
   }
@@ -19,7 +19,7 @@ export default function CryptoTransactionList({
   return (
     <div className="mt-6">
       <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-        On-chain Activity
+        Onchain Activity
       </h2>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50 px-4">
         {transactions.map((txn) => (

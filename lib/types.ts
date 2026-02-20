@@ -26,11 +26,14 @@ export interface Transaction {
 
 export type InterfaceMode = 'abstracted' | 'crypto';
 
+export type CryptoAsset = 'ETH' | 'USDC';
+
 export interface CryptoTransaction {
   id: string;
   userId: string;
   type: 'send' | 'receive';
-  amountEth: string;
+  asset: CryptoAsset;
+  amount: string;
   address: string;
   txHash: string;
   network: string;

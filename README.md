@@ -1,13 +1,15 @@
 # Privy Wallet Management Surface MVP
 
-An enterprise payments wallet prototype built on Privy's embedded wallet infrastructure. This app demonstrates how to build a fully abstracted fintech-style wallet UI where all crypto implementation details are hidden from the end user.
+An enterprise payments wallet prototype built on Privy's embedded wallet infrastructure. This app demonstrates how to build both an abstracted fintech-style wallet UI and a crypto-native wallet experience, togglable from a single interface.
 
 ## What This Demonstrates
 
 - **Real authentication** via Privy (email login with embedded wallet creation)
-- **Abstracted UX** showing only USD — no chain names, token tickers, wallet addresses, or gas in the primary UI
+- **Two interface modes** — Abstracted (USD) and Crypto-Native (ETH + USDC) — togglable from the header
+- **Sidebar navigation** with Wallet and Settings views
+- **Send/Receive as modal overlays** — the wallet screen stays fixed in place
 - **Mocked data layer** for deterministic, reliable demos (in-memory store, no database)
-- **Optional testnet mode** for real on-chain transactions behind a feature flag
+- **Optional testnet mode** for real onchain transactions behind a feature flag
 
 ## Quick Start
 
@@ -30,8 +32,9 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable | Required | Description |
 |---|---|---|
 | `NEXT_PUBLIC_PRIVY_APP_ID` | Yes | Your Privy App ID from the [Privy Dashboard](https://dashboard.privy.io/) |
-| `NEXT_PUBLIC_ENABLE_TESTNET_MODE` | No | Set to `true` to enable on-chain testnet sends (default: `false`) |
+| `NEXT_PUBLIC_ENABLE_TESTNET_MODE` | No | Set to `true` to enable onchain testnet sends (default: `false`) |
 | `NEXT_PUBLIC_DEMO_FORCE_MODE` | No | Set to `abstracted` or `crypto` to lock the interface mode and hide the toggle |
+| `NEXT_PUBLIC_USDC_ADDRESS` | No | USDC contract address on your testnet (e.g., Base Sepolia) for real USDC sends |
 
 ### Getting a Privy App ID
 
@@ -40,17 +43,48 @@ Open [http://localhost:3000](http://localhost:3000).
 3. Copy the App ID from your app settings
 4. Make sure "Email" is enabled as a login method in the dashboard
 
+## Layout
+
+### Header
+- **Left**: Product title ("Wallet")
+- **Right**: Mode toggle (Abstracted / Crypto) — the only CTA in the header
+
+### Sidebar
+- **Wallet** — default view showing balance, activity, Send/Receive buttons
+- **Settings** — display name, debug panel toggle, sign out
+
+### Send / Receive Modals
+Clicking "Send" or "Receive" opens a modal overlay. The underlying wallet screen remains visible and fixed — no route change occurs. Modals support:
+- Internal steps (form, confirm, success)
+- Dismiss via X button or Escape key
+- Focus trap and basic accessibility
+
+The `/send`, `/receive`, and `/settings` routes redirect to `/` since all actions happen on the main page.
+
 ## Two Interface Modes
 
 The app supports two interface modes, toggled via a pill-style control in the header:
 
 ### Abstracted Mode (Default)
 
-The standard fintech-style experience. All crypto details are hidden — users see USD balances, send to named recipients, and never encounter wallet addresses, token tickers, or transaction hashes. This is the original MVP experience and remains completely unchanged.
+The standard fintech-style experience. All crypto details are hidden — users see USD balances, send to named recipients, and never encounter wallet addresses, token tickers, or transaction hashes.
 
 ### Crypto-Native Mode
 
-A bare-bones crypto wallet experience. Users see their ETH balance, full wallet address, network badge (Base Sepolia), and on-chain activity with transaction hashes linked to the block explorer. The send flow requires manual address entry (0x-validated) and ETH amount input, with a confirmation screen showing token, network, and address. The receive screen displays the full wallet address with a copy button.
+A bare-bones crypto wallet experience with support for exactly two assets: **ETH** and **USDC**. Features:
+
+- **Asset selector** (ETH / USDC) persisted in localStorage
+- **Balance display** for the selected asset with wallet address and network badge
+- **Onchain activity** list with transaction hashes linked to the block explorer
+- **Send flow**: manual address entry (0x-validated), amount in selected asset, confirmation showing token/network/address
+- **Receive**: full wallet address display with Copy Address button
+
+### USDC Support
+
+In crypto mode, USDC is a first-class asset alongside ETH:
+- **Mock mode**: USDC balance is seeded at 250.00 USDC with a seed receive transaction
+- **Testnet mode**: If `NEXT_PUBLIC_USDC_ADDRESS` is set, the app reads the real ERC-20 balance and sends via `transfer()` with 6 decimals. If the address is not configured or the call fails, it falls back to mocked balances
+- USDC is not available in Abstracted mode — it is crypto-mode only
 
 ### Forcing a Mode
 
@@ -63,76 +97,74 @@ The selected mode persists across page refresh via localStorage.
 ### Mock Mode (Default)
 
 All transactions are simulated in-memory. The app seeds each new user with:
-- $1,250.00 balance
-- 2 initial transactions (deposits)
-- 3 pre-seeded recipients
+- $1,250.00 USD balance (Abstracted) / 0.6 ETH + 250 USDC balance (Crypto)
+- Seed transactions (deposits)
+- 3 pre-seeded recipients (Abstracted mode)
 
 Send and receive operations update the in-memory balance. Data resets on server restart. This mode requires no blockchain interaction and works without testnet funds.
 
 ### Testnet Mode
 
 When `NEXT_PUBLIC_ENABLE_TESTNET_MODE=true`:
-- A "Testnet Mode" banner appears on the dashboard
-- After completing a mock send, a "Send On-Chain (Testnet)" button appears
-- This sends 0.001 ETH on Base Sepolia using the embedded wallet
-- The transaction hash is displayed with a link to the block explorer
+- A "Testnet Mode" banner appears on the Abstracted dashboard
+- In Abstracted mode, after completing a mock send, a "Send Onchain (Testnet)" button appears
+- In Crypto mode, sends attempt real onchain transactions (ETH via `sendTransaction`, USDC via ERC-20 `transfer`)
+- Transaction hashes are displayed with links to the block explorer
 
-Testnet mode is **additive** — it doesn't replace the mock flow. The standard send/receive operations remain mocked for reliability.
+Testnet mode is **additive** — it doesn't replace the mock flow in Abstracted mode. The standard send/receive operations remain mocked for reliability.
 
 To use testnet mode, the embedded wallet needs Base Sepolia ETH. You can get testnet ETH from a Base Sepolia faucet.
 
-## Why Crypto Details Are Abstracted
+## Terminology
 
-This prototype represents an enterprise payments surface where:
-- End users think in **USD**, not tokens
-- The underlying rails (stablecoins on Base) are an **implementation detail**
-- Wallet addresses, gas fees, and chain names create unnecessary cognitive load
-- The UX should feel like Venmo or a banking app, not a crypto wallet
-
-The wallet address is only visible in a debug panel (toggled from Settings), intended for developers and support, not end users.
+This project uses "onchain" (one word, no hyphen) consistently — not "on-chain" or "on chain".
 
 ## Architecture
 
 ```
 app/
-  page.tsx              → Dashboard (balance, activity, action buttons)
+  page.tsx              → Main wallet view (balance, activity, modals)
   login/page.tsx        → Privy email authentication
-  send/page.tsx         → Multi-step send flow
-  receive/page.tsx      → Simulate deposit + debug panel
-  settings/page.tsx     → Display name, logout, debug toggle
+  send/page.tsx         → Redirect to /
+  receive/page.tsx      → Redirect to /
+  settings/page.tsx     → Redirect to /
   api/
     user/route.ts       → User CRUD
-    transactions/route.ts → Transaction CRUD + balance mutation
+    transactions/route.ts → Transaction CRUD + balance mutation (abstracted + crypto)
     statements/route.ts → CSV export
     recipients/route.ts → Recipient list
 
 components/
   Providers.tsx         → PrivyProvider + InterfaceModeProvider wrapper
   AuthGuard.tsx         → Auth redirect guard
-  AppShell.tsx          → Header + footer layout + mode toggle
+  AppShell.tsx          → Sidebar + header (title + mode toggle) + main content
+  Sidebar.tsx           → Wallet / Settings navigation
+  Modal.tsx             → Shared modal with focus trap, escape, X button
   ModeToggle.tsx        → Abstracted/Crypto pill-style toggle
+  SettingsView.tsx      → Settings content (display name, debug toggle, logout)
   BalanceCard.tsx       → USD balance display
-  ActionButtons.tsx     → Send / Receive / Statements
+  ActionButtons.tsx     → Send / Receive / Statements (callbacks, not links)
   TransactionList.tsx   → Activity list
   TransactionRow.tsx    → Single transaction row
-  SendFlow.tsx          → 4-step send wizard
+  SendFlow.tsx          → 4-step send wizard (abstracted)
   DebugPanel.tsx        → Wallet address (hidden by default)
 
   crypto/
-    CryptoBalanceCard.tsx      → ETH balance + address + network badge
-    CryptoActionButtons.tsx    → Send ETH / Receive ETH buttons
-    CryptoTransactionList.tsx  → "On-chain Activity" list
-    CryptoTransactionRow.tsx   → Tx row with address, ETH, tx hash link
-    CryptoSendFlow.tsx         → 4-step crypto send wizard
-    CryptoReceive.tsx          → Wallet address display + copy button
+    CryptoAssetSelector.tsx    → ETH / USDC pill-style selector
+    CryptoBalanceCard.tsx      → Balance for selected asset + address + network badge
+    CryptoActionButtons.tsx    → Send / Receive buttons (callbacks, not links)
+    CryptoTransactionList.tsx  → "Onchain Activity" list
+    CryptoTransactionRow.tsx   → Tx row with address, asset, amount, tx hash link
+    CryptoSendFlow.tsx         → 4-step crypto send wizard (ETH or USDC)
+    CryptoReceive.tsx          → Wallet address display + copy button + asset badge
 
 lib/
-  config.ts             → Branding + feature flags + force mode
+  config.ts             → Branding + feature flags + force mode + USDC address
   mode.ts               → InterfaceMode context, provider, useInterfaceMode hook
   mockStore.ts          → In-memory data store (USD/abstracted)
-  cryptoMockStore.ts    → In-memory data store (ETH/crypto)
-  types.ts              → TypeScript interfaces
-  wallet.ts             → Testnet transaction helpers
+  cryptoMockStore.ts    → In-memory data store (ETH + USDC / crypto)
+  types.ts              → TypeScript interfaces (including CryptoAsset)
+  wallet.ts             → Testnet transaction helpers (ETH + USDC ERC-20)
   utils.ts              → Formatting utilities
 ```
 
@@ -154,6 +186,10 @@ Branding and feature flags are configured in `lib/config.ts`:
   primaryColor: '#6851FF',
   customerName: 'Acme Corp',
   enableTestnetMode: false,
+  testnet: {
+    usdcAddress: '',  // Set via NEXT_PUBLIC_USDC_ADDRESS
+    // ...
+  },
   // ...
 }
 ```
@@ -161,7 +197,7 @@ Branding and feature flags are configured in `lib/config.ts`:
 ## Scope Constraints
 
 This is a narrow, opinionated prototype. By design, it does **not** include:
-- Multiple assets or tokens
+- Tokens beyond ETH and USDC
 - Chain switching or network selection
 - Token imports, swaps, or NFTs
 - Production security hardening

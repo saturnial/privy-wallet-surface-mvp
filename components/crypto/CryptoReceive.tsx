@@ -1,8 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { CryptoAsset } from '@/lib/types';
 
-export default function CryptoReceive({ walletAddress }: { walletAddress: string }) {
+export default function CryptoReceive({
+  walletAddress,
+  selectedAsset,
+}: {
+  walletAddress: string;
+  selectedAsset: CryptoAsset;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -12,10 +19,9 @@ export default function CryptoReceive({ walletAddress }: { walletAddress: string
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <h2 className="text-sm font-semibold text-gray-700 mb-2">Your Wallet Address</h2>
+    <div>
       <p className="text-sm text-gray-500 mb-4">
-        Share this address to receive ETH on Base Sepolia.
+        Share this address to receive {selectedAsset} on Base Sepolia.
       </p>
 
       <div className="bg-gray-50 rounded-xl p-4 mb-4">
@@ -29,7 +35,7 @@ export default function CryptoReceive({ walletAddress }: { walletAddress: string
           Base Sepolia
         </span>
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-          ETH
+          {selectedAsset}
         </span>
       </div>
 

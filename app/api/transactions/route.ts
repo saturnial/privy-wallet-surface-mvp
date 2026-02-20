@@ -24,11 +24,18 @@ export async function POST(request: NextRequest) {
   const mode = new URL(request.url).searchParams.get('mode');
 
   if (mode === 'crypto') {
-    const { userId, type, amountEth, address, txHash } = body;
-    if (!userId || !type || !amountEth || !address) {
+    const { userId, type, asset, amount, address, txHash } = body;
+    if (!userId || !type || !amount || !address) {
       return NextResponse.json({ error: 'missing fields' }, { status: 400 });
     }
-    const result = createCryptoTransaction({ userId, type, amountEth, address, txHash });
+    const result = createCryptoTransaction({
+      userId,
+      type,
+      asset: asset || 'ETH',
+      amount,
+      address,
+      txHash,
+    });
     if ('error' in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

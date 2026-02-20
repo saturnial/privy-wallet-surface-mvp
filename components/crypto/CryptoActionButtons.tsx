@@ -1,22 +1,26 @@
 'use client';
 
-import Link from 'next/link';
-
-export default function CryptoActionButtons() {
+export default function CryptoActionButtons({
+  onSend,
+  onReceive,
+}: {
+  onSend: () => void;
+  onReceive: () => void;
+}) {
   return (
     <div className="flex gap-3 mt-4">
-      <Link
-        href="/send"
+      <button
+        onClick={onSend}
         className="flex-1 bg-gray-900 text-white text-center py-3 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
       >
-        Send ETH
-      </Link>
-      <Link
-        href="/receive"
+        Send
+      </button>
+      <button
+        onClick={onReceive}
         className="flex-1 bg-white text-gray-900 text-center py-3 rounded-xl text-sm font-medium border border-gray-200 hover:bg-gray-50 transition-colors"
       >
-        Receive ETH
-      </Link>
+        Receive
+      </button>
     </div>
   );
 }

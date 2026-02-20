@@ -1,8 +1,9 @@
-import { CryptoTransaction } from './types';
+import { CryptoTransaction, CryptoAsset } from './types';
 import { generateId } from './utils';
 
 interface CryptoUserData {
   balanceEth: string;
+  balanceUsdc: string;
   transactions: CryptoTransaction[];
 }
 
@@ -32,12 +33,14 @@ function ensureUser(userId: string): CryptoUserData {
 
   data = {
     balanceEth: '0.6000',
+    balanceUsdc: '250.00',
     transactions: [
       {
         id: generateId(),
         userId,
         type: 'receive',
-        amountEth: '0.5000',
+        asset: 'ETH',
+        amount: '0.5000',
         address: fakeAddress(),
         txHash: fakeTxHash(),
         network: 'Base Sepolia',
@@ -47,7 +50,19 @@ function ensureUser(userId: string): CryptoUserData {
         id: generateId(),
         userId,
         type: 'receive',
-        amountEth: '0.1000',
+        asset: 'ETH',
+        amount: '0.1000',
+        address: fakeAddress(),
+        txHash: fakeTxHash(),
+        network: 'Base Sepolia',
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      },
+      {
+        id: generateId(),
+        userId,
+        type: 'receive',
+        asset: 'USDC',
+        amount: '250.00',
         address: fakeAddress(),
         txHash: fakeTxHash(),
         network: 'Base Sepolia',
@@ -59,10 +74,15 @@ function ensureUser(userId: string): CryptoUserData {
   return data;
 }
 
-export function getCryptoData(userId: string): CryptoUserData {
+export function getCryptoData(userId: string): {
+  balanceEth: string;
+  balanceUsdc: string;
+  transactions: CryptoTransaction[];
+} {
   const data = ensureUser(userId);
   return {
     balanceEth: data.balanceEth,
+    balanceUsdc: data.balanceUsdc,
     transactions: data.transactions
       .slice()
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -72,28 +92,33 @@ export function getCryptoData(userId: string): CryptoUserData {
 export function createCryptoTransaction(data: {
   userId: string;
   type: 'send' | 'receive';
-  amountEth: string;
+  asset: CryptoAsset;
+  amount: string;
   address: string;
   txHash?: string;
 }): CryptoTransaction | { error: string } {
   const userData = ensureUser(data.userId);
 
-  const amount = parseFloat(data.amountEth);
+  const amount = parseFloat(data.amount);
   if (isNaN(amount) || amount <= 0) return { error: 'Amount must be positive' };
 
-  const balance = parseFloat(userData.balanceEth);
+  const balanceKey = data.asset === 'USDC' ? 'balanceUsdc' : 'balanceEth';
+  const balance = parseFloat(userData[balanceKey]);
+
   if (data.type === 'send' && amount > balance) {
-    return { error: 'Insufficient ETH balance' };
+    return { error: `Insufficient ${data.asset} balance` };
   }
 
   const newBalance = data.type === 'send' ? balance - amount : balance + amount;
-  userData.balanceEth = newBalance.toFixed(4);
+  const decimals = data.asset === 'USDC' ? 2 : 4;
+  userData[balanceKey] = newBalance.toFixed(decimals);
 
   const txn: CryptoTransaction = {
     id: generateId(),
     userId: data.userId,
     type: data.type,
-    amountEth: amount.toFixed(4),
+    asset: data.asset,
+    amount: amount.toFixed(decimals),
     address: data.address,
     txHash: data.txHash || fakeTxHash(),
     network: 'Base Sepolia',

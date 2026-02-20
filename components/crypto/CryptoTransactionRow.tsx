@@ -20,9 +20,14 @@ export default function CryptoTransactionRow({ txn }: { txn: CryptoTransaction }
           {isReceive ? '+' : '-'}
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-900 font-mono">
-            {truncateAddress(txn.address)}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium text-gray-900 font-mono">
+              {truncateAddress(txn.address)}
+            </p>
+            <span className="text-[10px] font-medium text-gray-400">
+              {txn.asset}
+            </span>
+          </div>
           <div className="flex items-center gap-1.5">
             <p className="text-xs text-gray-400">
               {formatDate(txn.createdAt)} at {formatTime(txn.createdAt)}
@@ -43,7 +48,7 @@ export default function CryptoTransactionRow({ txn }: { txn: CryptoTransaction }
           isReceive ? 'text-green-600' : 'text-gray-900'
         }`}
       >
-        {isReceive ? '+' : '-'}{formatCryptoAmount(txn.amountEth)}
+        {isReceive ? '+' : '-'}{formatCryptoAmount(txn.amount, txn.asset)}
       </p>
     </div>
   );
