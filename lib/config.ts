@@ -15,6 +15,8 @@ export const config = {
     usdcAddress: process.env.NEXT_PUBLIC_USDC_ADDRESS || '',
   },
 
+  mockEthPriceUsd: 2500,
+
   defaultBalanceCents: 125000,
   simulatedDepositCents: 10000,
 

@@ -3,6 +3,7 @@
 import { CryptoTransaction } from '@/lib/types';
 import { formatCryptoAmount, truncateAddress, formatDate, formatTime } from '@/lib/utils';
 import { config } from '@/lib/config';
+import CopyableAddress from './CopyableAddress';
 
 export default function CryptoTransactionRow({ txn }: { txn: CryptoTransaction }) {
   const isReceive = txn.type === 'receive';
@@ -21,9 +22,7 @@ export default function CryptoTransactionRow({ txn }: { txn: CryptoTransaction }
         </div>
         <div>
           <div className="flex items-center gap-1.5">
-            <p className="text-sm font-medium text-gray-900 font-mono">
-              {truncateAddress(txn.address)}
-            </p>
+            <CopyableAddress address={txn.address} className="text-sm font-medium text-gray-900" />
             <span className="text-[10px] font-medium text-gray-400">
               {txn.asset}
             </span>

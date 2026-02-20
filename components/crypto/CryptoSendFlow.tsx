@@ -5,24 +5,24 @@ import { useWallets } from '@privy-io/react-auth';
 import { User, CryptoTransaction, CryptoAsset } from '@/lib/types';
 import { formatCryptoAmount, truncateAddress, isValidAddress } from '@/lib/utils';
 import { config } from '@/lib/config';
+import CopyableAddress from './CopyableAddress';
 
-type CryptoSendStep = 'enter-address' | 'enter-amount' | 'confirm' | 'success';
+type CryptoSendStep = 'select-asset' | 'enter-address' | 'enter-amount' | 'confirm' | 'success';
 
 export default function CryptoSendFlow({
   appUser,
   balanceEth,
   balanceUsdc,
-  selectedAsset,
   onComplete,
 }: {
   appUser: User;
   balanceEth: string;
   balanceUsdc: string;
-  selectedAsset: CryptoAsset;
   onComplete: () => void;
 }) {
   const { wallets } = useWallets();
-  const [step, setStep] = useState<CryptoSendStep>('enter-address');
+  const [step, setStep] = useState<CryptoSendStep>('select-asset');
+  const [selectedAsset, setSelectedAsset] = useState<CryptoAsset>('ETH');
   const [toAddress, setToAddress] = useState('');
   const [amountStr, setAmountStr] = useState('');
   const [error, setError] = useState('');
@@ -107,6 +107,31 @@ export default function CryptoSendFlow({
     setStep('success');
   };
 
+  if (step === 'select-asset') {
+    const assets: { id: CryptoAsset; label: string; balance: string }[] = [
+      { id: 'ETH', label: 'ETH', balance: balanceEth },
+      { id: 'USDC', label: 'USDC', balance: balanceUsdc },
+    ];
+
+    return (
+      <div>
+        <p className="text-sm text-gray-500 mb-4">Which asset do you want to send?</p>
+        <div className="space-y-2">
+          {assets.map((a) => (
+            <button
+              key={a.id}
+              onClick={() => { setSelectedAsset(a.id); setStep('enter-address'); }}
+              className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-between"
+            >
+              <span className="text-sm font-medium text-gray-900">{a.label}</span>
+              <span className="text-sm text-gray-400">{formatCryptoAmount(a.balance, a.id)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'enter-address') {
     return (
       <div>
@@ -126,13 +151,21 @@ export default function CryptoSendFlow({
 
         {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
 
-        <button
-          onClick={handleAddressContinue}
-          className="w-full mt-4 py-3 rounded-xl text-white text-sm font-medium transition-colors"
-          style={{ backgroundColor: config.primaryColor }}
-        >
-          Continue
-        </button>
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => { setStep('select-asset'); setError(''); }}
+            className="flex-1 py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleAddressContinue}
+            className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-colors"
+            style={{ backgroundColor: config.primaryColor }}
+          >
+            Continue
+          </button>
+        </div>
       </div>
     );
   }
@@ -141,7 +174,7 @@ export default function CryptoSendFlow({
     return (
       <div>
         <p className="text-sm text-gray-500 mb-4">
-          Sending to <span className="font-mono text-gray-700">{truncateAddress(toAddress)}</span>
+          Sending to <CopyableAddress address={toAddress} className="text-gray-700" />
         </p>
 
         <div className="bg-gray-50 rounded-xl p-4">
@@ -191,7 +224,7 @@ export default function CryptoSendFlow({
         <div className="bg-gray-50 rounded-xl p-4 space-y-3">
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">To</span>
-            <span className="text-sm font-mono font-medium text-gray-900">{truncateAddress(toAddress)}</span>
+            <CopyableAddress address={toAddress} className="text-sm font-medium text-gray-900" />
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">Amount</span>
@@ -240,7 +273,7 @@ export default function CryptoSendFlow({
 
       <h2 className="text-xl font-bold text-gray-900 mb-1">Transaction Sent</h2>
       <p className="text-sm text-gray-500 mb-4">
-        {formatCryptoAmount(amountStr, selectedAsset)} sent to {truncateAddress(toAddress)}
+        {formatCryptoAmount(amountStr, selectedAsset)} sent to <CopyableAddress address={toAddress} className="text-gray-500" />
       </p>
 
       {resultTxn && (

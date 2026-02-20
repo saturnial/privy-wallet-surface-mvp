@@ -12,15 +12,12 @@ import DebugPanel from '@/components/DebugPanel';
 import CryptoBalanceCard from '@/components/crypto/CryptoBalanceCard';
 import CryptoActionButtons from '@/components/crypto/CryptoActionButtons';
 import CryptoTransactionList from '@/components/crypto/CryptoTransactionList';
-import CryptoAssetSelector from '@/components/crypto/CryptoAssetSelector';
 import CryptoSendFlow from '@/components/crypto/CryptoSendFlow';
 import CryptoReceive from '@/components/crypto/CryptoReceive';
 import { useInterfaceMode } from '@/lib/mode';
-import { User, Transaction, CryptoTransaction, CryptoAsset } from '@/lib/types';
+import { User, Transaction, CryptoTransaction } from '@/lib/types';
 import { config } from '@/lib/config';
 import { formatCurrency } from '@/lib/utils';
-
-const ASSET_STORAGE_KEY = 'privy-demo-crypto-asset';
 
 export default function DashboardPage() {
   const { user: privyUser } = usePrivy();
@@ -32,14 +29,6 @@ export default function DashboardPage() {
   const [cryptoBalanceUsdc, setCryptoBalanceUsdc] = useState('0');
   const [loading, setLoading] = useState(true);
 
-  const [selectedAsset, setSelectedAsset] = useState<CryptoAsset>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(ASSET_STORAGE_KEY);
-      if (stored === 'ETH' || stored === 'USDC') return stored;
-    }
-    return 'ETH';
-  });
-
   // Modal state
   const [sendOpen, setSendOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
@@ -47,11 +36,6 @@ export default function DashboardPage() {
   // Abstracted receive state
   const [depositLoading, setDepositLoading] = useState(false);
   const [deposited, setDeposited] = useState(false);
-
-  const handleAssetChange = (asset: CryptoAsset) => {
-    setSelectedAsset(asset);
-    localStorage.setItem(ASSET_STORAGE_KEY, asset);
-  };
 
   const loadData = useCallback(async (userId: string, currentMode: string) => {
     if (currentMode === 'crypto') {
@@ -133,8 +117,8 @@ export default function DashboardPage() {
     setDepositLoading(false);
   };
 
-  const sendModalTitle = mode === 'crypto' ? `Send ${selectedAsset}` : 'Send USD';
-  const receiveModalTitle = mode === 'crypto' ? `Receive ${selectedAsset}` : 'Receive USD';
+  const sendModalTitle = mode === 'crypto' ? 'Send' : 'Send USD';
+  const receiveModalTitle = mode === 'crypto' ? 'Receive' : 'Receive USD';
 
   return (
     <AuthGuard>
@@ -146,13 +130,9 @@ export default function DashboardPage() {
         <div>
           {mode === 'crypto' ? (
             <>
-              <div className="mb-4">
-                <CryptoAssetSelector selected={selectedAsset} onSelect={handleAssetChange} />
-              </div>
               <CryptoBalanceCard
                 balanceEth={cryptoBalanceEth}
                 balanceUsdc={cryptoBalanceUsdc}
-                selectedAsset={selectedAsset}
                 walletAddress={appUser.walletAddress}
               />
               <CryptoActionButtons
@@ -186,7 +166,6 @@ export default function DashboardPage() {
                 appUser={appUser}
                 balanceEth={cryptoBalanceEth}
                 balanceUsdc={cryptoBalanceUsdc}
-                selectedAsset={selectedAsset}
                 onComplete={handleSendComplete}
               />
             ) : (
@@ -202,7 +181,6 @@ export default function DashboardPage() {
             {mode === 'crypto' ? (
               <CryptoReceive
                 walletAddress={appUser.walletAddress}
-                selectedAsset={selectedAsset}
               />
             ) : (
               <div>
