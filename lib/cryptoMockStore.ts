@@ -7,7 +7,16 @@ interface CryptoUserData {
   transactions: CryptoTransaction[];
 }
 
-const cryptoUsers = new Map<string, CryptoUserData>();
+// Persist in-memory data across Next.js HMR in development
+const g = globalThis as typeof globalThis & {
+  __cryptoUsers?: Map<string, CryptoUserData>;
+};
+
+const cryptoUsers = g.__cryptoUsers ?? new Map<string, CryptoUserData>();
+
+if (process.env.NODE_ENV !== 'production') {
+  g.__cryptoUsers = cryptoUsers;
+}
 
 function fakeTxHash(): string {
   const hex = '0123456789abcdef';

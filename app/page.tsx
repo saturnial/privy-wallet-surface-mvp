@@ -115,6 +115,12 @@ export default function DashboardPage() {
     await loadData(appUser.id, mode);
     setDeposited(true);
     setDepositLoading(false);
+
+    // Auto-close modal after brief success flash so user sees updated list
+    setTimeout(() => {
+      setReceiveOpen(false);
+      setDeposited(false);
+    }, 1200);
   };
 
   const sendModalTitle = mode === 'crypto' ? 'Send' : 'Send USD';

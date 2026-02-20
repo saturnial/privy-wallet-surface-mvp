@@ -2,8 +2,19 @@ import { User, Recipient, Transaction } from './types';
 import { generateId } from './utils';
 import { config } from './config';
 
-const users = new Map<string, User>();
-const transactions = new Map<string, Transaction[]>();
+// Persist in-memory data across Next.js HMR in development
+const g = globalThis as typeof globalThis & {
+  __mockUsers?: Map<string, User>;
+  __mockTransactions?: Map<string, Transaction[]>;
+};
+
+const users = g.__mockUsers ?? new Map<string, User>();
+const transactions = g.__mockTransactions ?? new Map<string, Transaction[]>();
+
+if (process.env.NODE_ENV !== 'production') {
+  g.__mockUsers = users;
+  g.__mockTransactions = transactions;
+}
 
 const recipients: Recipient[] = [
   { id: 'r1', name: 'Acme Corp', nickname: 'acme', createdAt: '2025-01-15T10:00:00Z' },
