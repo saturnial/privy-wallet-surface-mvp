@@ -1,6 +1,7 @@
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
+import Link from 'next/link';
 
 type SidebarView = 'wallet' | 'settings';
 
@@ -36,6 +37,15 @@ export default function Sidebar({
             {item.label}
           </button>
         ))}
+        <div className="border-t border-gray-100 mt-2 pt-2">
+          <Link
+            href="/gusto"
+            target="_blank"
+            className="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Gusto Demo &rarr;
+          </Link>
+        </div>
       </nav>
     </aside>
   );
