@@ -6,6 +6,7 @@ import { User, CryptoTransaction, CryptoAsset } from '@/lib/types';
 import { formatCryptoAmount, truncateAddress, isValidAddress } from '@/lib/utils';
 import { config } from '@/lib/config';
 import CopyableAddress from './CopyableAddress';
+import { useBranding } from '@/components/PrivyWalletWidget/BrandingContext';
 
 type CryptoSendStep = 'select-asset' | 'enter-address' | 'enter-amount' | 'confirm' | 'success';
 
@@ -21,6 +22,7 @@ export default function CryptoSendFlow({
   onComplete: () => void;
 }) {
   const { wallets } = useWallets();
+  const { primaryColor } = useBranding();
   const [step, setStep] = useState<CryptoSendStep>('select-asset');
   const [selectedAsset, setSelectedAsset] = useState<CryptoAsset>('ETH');
   const [toAddress, setToAddress] = useState('');
@@ -161,7 +163,7 @@ export default function CryptoSendFlow({
           <button
             onClick={handleAddressContinue}
             className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-colors"
-            style={{ backgroundColor: config.primaryColor }}
+            style={{ backgroundColor: primaryColor }}
           >
             Continue
           </button>
@@ -209,7 +211,7 @@ export default function CryptoSendFlow({
           <button
             onClick={handleAmountContinue}
             className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-colors"
-            style={{ backgroundColor: config.primaryColor }}
+            style={{ backgroundColor: primaryColor }}
           >
             Continue
           </button>
@@ -253,7 +255,7 @@ export default function CryptoSendFlow({
             onClick={handleConfirm}
             disabled={sending}
             className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-colors disabled:opacity-50"
-            style={{ backgroundColor: config.primaryColor }}
+            style={{ backgroundColor: primaryColor }}
           >
             {sending ? 'Sending...' : 'Confirm Send'}
           </button>

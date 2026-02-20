@@ -5,6 +5,7 @@ import { useWallets } from '@privy-io/react-auth';
 import { Recipient, User, Transaction } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { config } from '@/lib/config';
+import { useBranding } from '@/components/PrivyWalletWidget/BrandingContext';
 
 type SendStep = 'select-recipient' | 'enter-amount' | 'confirm' | 'success';
 
@@ -16,6 +17,7 @@ export default function SendFlow({
   onComplete: () => void;
 }) {
   const { wallets } = useWallets();
+  const { primaryColor } = useBranding();
   const [step, setStep] = useState<SendStep>('select-recipient');
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
@@ -146,7 +148,7 @@ export default function SendFlow({
           <button
             onClick={handleAmountContinue}
             className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-colors"
-            style={{ backgroundColor: config.primaryColor }}
+            style={{ backgroundColor: primaryColor }}
           >
             Continue
           </button>
@@ -190,7 +192,7 @@ export default function SendFlow({
             onClick={handleConfirm}
             disabled={sending}
             className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-colors disabled:opacity-50"
-            style={{ backgroundColor: config.primaryColor }}
+            style={{ backgroundColor: primaryColor }}
           >
             {sending ? 'Sending...' : 'Confirm Send'}
           </button>

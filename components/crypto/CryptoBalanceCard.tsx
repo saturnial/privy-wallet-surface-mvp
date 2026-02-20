@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { formatCryptoAmount, formatCurrency } from '@/lib/utils';
 import CopyableAddress from './CopyableAddress';
 import { config } from '@/lib/config';
+import { useCompact } from '@/components/PrivyWalletWidget/BrandingContext';
 
 export default function CryptoBalanceCard({
   balanceEth,
@@ -14,6 +15,7 @@ export default function CryptoBalanceCard({
   balanceUsdc: string;
   walletAddress: string;
 }) {
+  const compact = useCompact();
   const [showTokens, setShowTokens] = useState(false);
 
   const ethUsd = parseFloat(balanceEth) * config.mockEthPriceUsd;
@@ -21,7 +23,7 @@ export default function CryptoBalanceCard({
   const totalUsd = ethUsd + usdcUsd;
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div className={`bg-white rounded-2xl ${compact ? 'p-4' : 'p-6'} shadow-sm border border-gray-100`}>
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-3">
           <CopyableAddress address={walletAddress} className="text-xs text-gray-400" />
@@ -30,7 +32,7 @@ export default function CryptoBalanceCard({
           </span>
         </div>
         <p className="text-sm text-gray-500 mb-1">Total Balance</p>
-        <p className="text-4xl font-bold text-gray-900 tracking-tight">
+        <p className={`${compact ? 'text-2xl' : 'text-4xl'} font-bold text-gray-900 tracking-tight`}>
           {formatCurrency(Math.round(totalUsd * 100))}
         </p>
       </div>

@@ -4,15 +4,17 @@ import { CryptoTransaction } from '@/lib/types';
 import { formatCryptoAmount, truncateAddress, formatDate, formatTime } from '@/lib/utils';
 import { config } from '@/lib/config';
 import CopyableAddress from './CopyableAddress';
+import { useCompact } from '@/components/PrivyWalletWidget/BrandingContext';
 
 export default function CryptoTransactionRow({ txn }: { txn: CryptoTransaction }) {
+  const compact = useCompact();
   const isReceive = txn.type === 'receive';
 
   return (
-    <div className="flex items-center justify-between py-3">
+    <div className={`flex items-center justify-between ${compact ? 'py-2' : 'py-3'}`}>
       <div className="flex items-center gap-3">
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+          className={`${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-full flex items-center justify-center ${
             isReceive
               ? 'bg-green-50 text-green-600'
               : 'bg-red-50 text-red-600'
