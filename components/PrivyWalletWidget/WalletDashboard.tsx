@@ -42,18 +42,17 @@ export default function WalletDashboard({
   const [depositLoading, setDepositLoading] = useState(false);
   const [deposited, setDeposited] = useState(false);
 
-  const loadData = useCallback(async (userId: string, currentMode: string) => {
-    if (currentMode === 'crypto') {
-      const res = await fetch(`/api/transactions?userId=${userId}&mode=crypto`);
-      const data = await res.json();
-      setCryptoBalanceEth(data.balanceEth);
-      setCryptoBalanceUsdc(data.balanceUsdc);
-      setCryptoTransactions(data.transactions);
-    } else {
-      const txRes = await fetch(`/api/transactions?userId=${userId}`);
-      const txns = await txRes.json();
-      setTransactions(txns);
-    }
+  const loadAllData = useCallback(async (userId: string) => {
+    const [txRes, cryptoRes] = await Promise.all([
+      fetch(`/api/transactions?userId=${userId}`),
+      fetch(`/api/transactions?userId=${userId}&mode=crypto`),
+    ]);
+    const txns = await txRes.json();
+    setTransactions(txns);
+    const cryptoData = await cryptoRes.json();
+    setCryptoBalanceEth(cryptoData.balanceEth);
+    setCryptoBalanceUsdc(cryptoData.balanceUsdc);
+    setCryptoTransactions(cryptoData.transactions);
   }, []);
 
   const fetchUser = useCallback(async () => {
@@ -83,17 +82,17 @@ export default function WalletDashboard({
       });
       const user: User = await res.json();
       setAppUser(user);
-      await loadData(user.id, mode);
+      await loadAllData(user.id);
       setLoading(false);
     };
 
     registerAndLoad();
-  }, [privyUser, loadData, mode]);
+  }, [privyUser, loadAllData]);
 
   const handleSendComplete = async () => {
     setSendOpen(false);
     if (appUser) {
-      await loadData(appUser.id, mode);
+      await loadAllData(appUser.id);
       const refreshed = await fetchUser();
       if (refreshed) setAppUser(refreshed);
     }
@@ -117,7 +116,7 @@ export default function WalletDashboard({
 
     const refreshed = await fetchUser();
     if (refreshed) setAppUser(refreshed);
-    await loadData(appUser.id, mode);
+    await loadAllData(appUser.id);
     setDeposited(true);
     setDepositLoading(false);
 
