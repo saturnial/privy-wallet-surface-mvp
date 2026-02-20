@@ -66,6 +66,7 @@ export default function WalletDashboard({
     return null;
   }, [privyUser]);
 
+  // Register user and do initial data load
   useEffect(() => {
     if (!privyUser) return;
 
@@ -88,6 +89,22 @@ export default function WalletDashboard({
 
     registerAndLoad();
   }, [privyUser, loadAllData]);
+
+  // Poll for fresh data every 3 seconds
+  useEffect(() => {
+    if (!appUser) return;
+
+    const interval = setInterval(async () => {
+      await loadAllData(appUser.id);
+      const res = await fetch(`/api/user?email=${encodeURIComponent(appUser.email)}`);
+      if (res.ok) {
+        const user: User = await res.json();
+        setAppUser(user);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [appUser?.id, appUser?.email, loadAllData]);
 
   const handleSendComplete = async () => {
     setSendOpen(false);
