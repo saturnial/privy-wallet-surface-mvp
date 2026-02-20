@@ -23,3 +23,16 @@ export interface Transaction {
   createdAt: string;
   txHash?: string;
 }
+
+export type InterfaceMode = 'abstracted' | 'crypto';
+
+export interface CryptoTransaction {
+  id: string;
+  userId: string;
+  type: 'send' | 'receive';
+  amountEth: string;
+  address: string;
+  txHash: string;
+  network: string;
+  createdAt: string;
+}

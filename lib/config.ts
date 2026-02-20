@@ -17,5 +17,10 @@ export const config = {
   defaultBalanceCents: 125000,
   simulatedDepositCents: 10000,
 
+  demoForceMode: process.env.NEXT_PUBLIC_DEMO_FORCE_MODE as
+    | 'abstracted'
+    | 'crypto'
+    | undefined,
+
   footerText: 'Powered by Privy',
 };

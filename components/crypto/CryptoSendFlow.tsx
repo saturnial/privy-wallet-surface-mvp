@@ -1,0 +1,259 @@
+'use client';
+
+import { useState } from 'react';
+import { useWallets } from '@privy-io/react-auth';
+import { User, CryptoTransaction } from '@/lib/types';
+import { formatCryptoAmount, truncateAddress, isValidAddress } from '@/lib/utils';
+import { config } from '@/lib/config';
+
+type CryptoSendStep = 'enter-address' | 'enter-amount' | 'confirm' | 'success';
+
+export default function CryptoSendFlow({
+  appUser,
+  balanceEth,
+  onComplete,
+}: {
+  appUser: User;
+  balanceEth: string;
+  onComplete: () => void;
+}) {
+  const { wallets } = useWallets();
+  const [step, setStep] = useState<CryptoSendStep>('enter-address');
+  const [toAddress, setToAddress] = useState('');
+  const [amountStr, setAmountStr] = useState('');
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+  const [resultTxn, setResultTxn] = useState<CryptoTransaction | null>(null);
+
+  const handleAddressContinue = () => {
+    setError('');
+    if (!isValidAddress(toAddress)) {
+      setError('Enter a valid Ethereum address (0x...)');
+      return;
+    }
+    setStep('enter-amount');
+  };
+
+  const handleAmountContinue = () => {
+    setError('');
+    const amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Enter a valid amount');
+      return;
+    }
+    if (amount > parseFloat(balanceEth)) {
+      setError('Amount exceeds available balance');
+      return;
+    }
+    setStep('confirm');
+  };
+
+  const handleConfirm = async () => {
+    setSending(true);
+    setError('');
+
+    let txHash: string | undefined;
+
+    // Try real testnet send if enabled
+    if (config.enableTestnetMode) {
+      try {
+        const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+        if (embeddedWallet) {
+          await embeddedWallet.switchChain(config.testnet.chainId);
+          const provider = await embeddedWallet.getEthereumProvider();
+          const { sendTestnetTransactionWithAmount } = await import('@/lib/wallet');
+          txHash = await sendTestnetTransactionWithAmount(provider, toAddress, amountStr);
+        }
+      } catch {
+        // Fall through to mock if testnet send fails
+      }
+    }
+
+    const res = await fetch('/api/transactions?mode=crypto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: appUser.id,
+        type: 'send',
+        amountEth: amountStr,
+        address: toAddress,
+        txHash,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error || 'Transaction failed');
+      setSending(false);
+      return;
+    }
+
+    const txn: CryptoTransaction = await res.json();
+    setResultTxn(txn);
+    setSending(false);
+    setStep('success');
+  };
+
+  if (step === 'enter-address') {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Recipient Address</h2>
+        <p className="text-sm text-gray-500 mb-4">Enter the Ethereum address to send to.</p>
+
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <label className="block text-sm text-gray-500 mb-2">To Address</label>
+          <input
+            type="text"
+            value={toAddress}
+            onChange={(e) => setToAddress(e.target.value)}
+            placeholder="0x..."
+            className="w-full text-sm font-mono text-gray-900 outline-none bg-transparent border border-gray-200 rounded-xl px-4 py-3"
+            autoFocus
+          />
+        </div>
+
+        {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
+
+        <button
+          onClick={handleAddressContinue}
+          className="w-full mt-4 py-3 rounded-xl text-white text-sm font-medium transition-colors"
+          style={{ backgroundColor: config.primaryColor }}
+        >
+          Continue
+        </button>
+      </div>
+    );
+  }
+
+  if (step === 'enter-amount') {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Enter Amount</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Sending to <span className="font-mono text-gray-700">{truncateAddress(toAddress)}</span>
+        </p>
+
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <label className="block text-sm text-gray-500 mb-2">Amount (ETH)</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={amountStr}
+              onChange={(e) => setAmountStr(e.target.value)}
+              placeholder="0.0"
+              min="0"
+              step="0.0001"
+              className="text-3xl font-bold text-gray-900 w-full outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              autoFocus
+            />
+            <span className="text-lg text-gray-400">ETH</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Available: {formatCryptoAmount(balanceEth)}
+          </p>
+        </div>
+
+        {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
+
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => { setStep('enter-address'); setError(''); }}
+            className="flex-1 py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleAmountContinue}
+            className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-colors"
+            style={{ backgroundColor: config.primaryColor }}
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'confirm') {
+    return (
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Confirm Transaction</h2>
+
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-500">To</span>
+            <span className="text-sm font-mono font-medium text-gray-900">{truncateAddress(toAddress)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-500">Amount</span>
+            <span className="text-sm font-medium text-gray-900">{formatCryptoAmount(amountStr)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-500">Token</span>
+            <span className="text-sm font-medium text-gray-900">ETH</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-gray-500">Network</span>
+            <span className="text-sm font-medium text-gray-900">Base Sepolia</span>
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
+
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => { setStep('enter-amount'); setError(''); }}
+            className="flex-1 py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={sending}
+            className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-colors disabled:opacity-50"
+            style={{ backgroundColor: config.primaryColor }}
+          >
+            {sending ? 'Sending...' : 'Confirm Send'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Success
+  return (
+    <div className="text-center">
+      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Transaction Sent</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        {formatCryptoAmount(amountStr)} sent to {truncateAddress(toAddress)}
+      </p>
+
+      {resultTxn && (
+        <div className="bg-gray-50 rounded-xl p-3 mb-4">
+          <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
+          <a
+            href={`${config.testnet.explorerUrl}/tx/${resultTxn.txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-mono text-blue-600 break-all underline"
+          >
+            {resultTxn.txHash}
+          </a>
+        </div>
+      )}
+
+      <button
+        onClick={onComplete}
+        className="w-full py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+      >
+        Back to Dashboard
+      </button>
+    </div>
+  );
+}

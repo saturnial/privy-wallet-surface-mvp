@@ -1,6 +1,7 @@
 'use client';
 
 import { PrivyProvider } from '@privy-io/react-auth';
+import { InterfaceModeProvider } from '@/lib/mode';
 
 const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
@@ -37,7 +38,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         },
       }}
     >
-      {children}
+      <InterfaceModeProvider>
+        {children}
+      </InterfaceModeProvider>
     </PrivyProvider>
   );
 }

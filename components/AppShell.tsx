@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { config } from '@/lib/config';
+import ModeToggle from '@/components/ModeToggle';
 
 const navItems = [
   { href: '/', label: 'Home' },
@@ -23,6 +24,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="text-lg font-semibold" style={{ color: config.primaryColor }}>
             {config.logoText}
           </Link>
+          <ModeToggle />
           {authenticated && (
             <nav className="flex gap-1">
               {navItems.map((item) => (

@@ -23,3 +23,18 @@ export function formatTime(iso: string): string {
     minute: '2-digit',
   });
 }
+
+export function truncateAddress(address: string): string {
+  if (address.length <= 10) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+export function formatCryptoAmount(eth: string): string {
+  const num = parseFloat(eth);
+  if (isNaN(num)) return '0 ETH';
+  return `${num.toFixed(num < 0.001 ? 6 : 4)} ETH`;
+}
+
+export function isValidAddress(address: string): boolean {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+}

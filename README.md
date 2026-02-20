@@ -31,6 +31,7 @@ Open [http://localhost:3000](http://localhost:3000).
 |---|---|---|
 | `NEXT_PUBLIC_PRIVY_APP_ID` | Yes | Your Privy App ID from the [Privy Dashboard](https://dashboard.privy.io/) |
 | `NEXT_PUBLIC_ENABLE_TESTNET_MODE` | No | Set to `true` to enable on-chain testnet sends (default: `false`) |
+| `NEXT_PUBLIC_DEMO_FORCE_MODE` | No | Set to `abstracted` or `crypto` to lock the interface mode and hide the toggle |
 
 ### Getting a Privy App ID
 
@@ -38,6 +39,24 @@ Open [http://localhost:3000](http://localhost:3000).
 2. Create a new app (or use an existing one)
 3. Copy the App ID from your app settings
 4. Make sure "Email" is enabled as a login method in the dashboard
+
+## Two Interface Modes
+
+The app supports two interface modes, toggled via a pill-style control in the header:
+
+### Abstracted Mode (Default)
+
+The standard fintech-style experience. All crypto details are hidden — users see USD balances, send to named recipients, and never encounter wallet addresses, token tickers, or transaction hashes. This is the original MVP experience and remains completely unchanged.
+
+### Crypto-Native Mode
+
+A bare-bones crypto wallet experience. Users see their ETH balance, full wallet address, network badge (Base Sepolia), and on-chain activity with transaction hashes linked to the block explorer. The send flow requires manual address entry (0x-validated) and ETH amount input, with a confirmation screen showing token, network, and address. The receive screen displays the full wallet address with a copy button.
+
+### Forcing a Mode
+
+Set `NEXT_PUBLIC_DEMO_FORCE_MODE=crypto` (or `abstracted`) to lock the interface to a single mode. When forced, the toggle is hidden. This is useful for demos where you want to show only one experience.
+
+The selected mode persists across page refresh via localStorage.
 
 ## Mock Mode vs Testnet Mode
 
@@ -88,9 +107,10 @@ app/
     recipients/route.ts → Recipient list
 
 components/
-  Providers.tsx         → PrivyProvider wrapper
+  Providers.tsx         → PrivyProvider + InterfaceModeProvider wrapper
   AuthGuard.tsx         → Auth redirect guard
-  AppShell.tsx          → Header + footer layout
+  AppShell.tsx          → Header + footer layout + mode toggle
+  ModeToggle.tsx        → Abstracted/Crypto pill-style toggle
   BalanceCard.tsx       → USD balance display
   ActionButtons.tsx     → Send / Receive / Statements
   TransactionList.tsx   → Activity list
@@ -98,11 +118,21 @@ components/
   SendFlow.tsx          → 4-step send wizard
   DebugPanel.tsx        → Wallet address (hidden by default)
 
+  crypto/
+    CryptoBalanceCard.tsx      → ETH balance + address + network badge
+    CryptoActionButtons.tsx    → Send ETH / Receive ETH buttons
+    CryptoTransactionList.tsx  → "On-chain Activity" list
+    CryptoTransactionRow.tsx   → Tx row with address, ETH, tx hash link
+    CryptoSendFlow.tsx         → 4-step crypto send wizard
+    CryptoReceive.tsx          → Wallet address display + copy button
+
 lib/
-  config.ts             → Branding + feature flags
-  mockStore.ts          → In-memory data store
+  config.ts             → Branding + feature flags + force mode
+  mode.ts               → InterfaceMode context, provider, useInterfaceMode hook
+  mockStore.ts          → In-memory data store (USD/abstracted)
+  cryptoMockStore.ts    → In-memory data store (ETH/crypto)
   types.ts              → TypeScript interfaces
-  wallet.ts             → Testnet transaction helper
+  wallet.ts             → Testnet transaction helpers
   utils.ts              → Formatting utilities
 ```
 
