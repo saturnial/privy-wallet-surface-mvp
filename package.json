@@ -1,5 +1,5 @@
 {
-  "name": "privy-wallet-temp",
+  "name": "privy-wallet-surface-mvp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@privy-io/react-auth": "^3.14.1",
+    "ethers": "^6.16.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
