@@ -1,12 +1,14 @@
 # Privy Wallet Management Surface MVP
 
-An enterprise payments wallet prototype built on Privy's embedded wallet infrastructure. This app demonstrates how to build both an abstracted fintech-style wallet UI and a crypto-native wallet experience, togglable from a single interface.
+An enterprise payments wallet prototype built on Privy's embedded wallet infrastructure. Demonstrates both a standalone wallet app and an embeddable widget that host applications (like Gusto) can integrate with custom branding.
 
 ## What This Demonstrates
 
+- **Embeddable `<PrivyWalletWidget />`** — drop-in widget with per-host branding, compact mode, and inline auth
+- **Gusto embedding demo** (`/gusto`) — simulated host app embedding the widget with custom teal branding
 - **Real authentication** via Privy (email login with embedded wallet creation)
 - **Two interface modes** — Abstracted (USD) and Crypto-Native (ETH + USDC) — togglable from the header
-- **Sidebar navigation** with Wallet and Settings views
+- **Live-updating transaction list** — 3-second polling keeps balances and activity current
 - **Send/Receive as modal overlays** — the wallet screen stays fixed in place
 - **Mocked data layer** for deterministic, reliable demos (in-memory store, no database)
 - **Optional testnet mode** for real onchain transactions behind a feature flag
@@ -25,7 +27,36 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) for the standalone wallet, or [http://localhost:3000/gusto](http://localhost:3000/gusto) for the Gusto embedding demo.
+
+## Gusto Embedding Demo
+
+The `/gusto` route shows how a host application embeds the Privy wallet widget:
+
+- Gusto-branded host shell (top nav, left nav, content area)
+- Widget rendered in **compact mode** with Gusto teal (`#0A8080`) branding
+- **Inline sign-in** — unauthenticated users see a sign-in button inside the widget (no redirect)
+- **"Powered by Privy"** footer with optional customer support link
+- Embed configuration panel showing the exact `BrandingConfig` parameters
+
+The standalone app sidebar includes a "Gusto Demo" link that opens the embedded experience in a new tab.
+
+### How Embedding Works
+
+```tsx
+import { PrivyWalletWidget } from '@/components/PrivyWalletWidget';
+
+<PrivyWalletWidget
+  branding={{
+    brandName: 'Gusto',
+    primaryColor: '#0A8080',
+    surfaceStyle: 'compact',
+    customerSupportUrl: 'https://support.gusto.com',
+  }}
+/>
+```
+
+The widget composes: `BrandingProvider` > `WidgetFrame` > `WidgetAuth` > `WalletDashboard`. All sub-components read branding from context — no prop drilling.
 
 ## Environment Variables
 
@@ -43,27 +74,9 @@ Open [http://localhost:3000](http://localhost:3000).
 3. Copy the App ID from your app settings
 4. Make sure "Email" is enabled as a login method in the dashboard
 
-## Layout
-
-### Header
-- **Left**: Product title ("Wallet")
-- **Right**: Mode toggle (Abstracted / Crypto) — the only CTA in the header
-
-### Sidebar
-- **Wallet** — default view showing balance, activity, Send/Receive buttons
-- **Settings** — display name, debug panel toggle, sign out
-
-### Send / Receive Modals
-Clicking "Send" or "Receive" opens a modal overlay. The underlying wallet screen remains visible and fixed — no route change occurs. Modals support:
-- Internal steps (form, confirm, success)
-- Dismiss via X button or Escape key
-- Focus trap and basic accessibility
-
-The `/send`, `/receive`, and `/settings` routes redirect to `/` since all actions happen on the main page.
-
 ## Two Interface Modes
 
-The app supports two interface modes, toggled via a pill-style control in the header:
+The app supports two interface modes, toggled via a pill-style control in the header (standalone) or widget header (embedded):
 
 ### Abstracted Mode (Default)
 
@@ -73,24 +86,20 @@ The standard fintech-style experience. All crypto details are hidden — users s
 
 A bare-bones crypto wallet experience with support for exactly two assets: **ETH** and **USDC**. Features:
 
-- **Asset selector** (ETH / USDC) persisted in localStorage
-- **Balance display** for the selected asset with wallet address and network badge
+- **Unified USD balance** with expandable token breakdown (ETH + USDC)
 - **Onchain activity** list with transaction hashes linked to the block explorer
-- **Send flow**: manual address entry (0x-validated), amount in selected asset, confirmation showing token/network/address
-- **Receive**: full wallet address display with Copy Address button
+- **Send flow**: asset selector, manual address entry (0x-validated), amount, confirmation
+- **Receive**: full wallet address display with copy button
 
 ### USDC Support
 
 In crypto mode, USDC is a first-class asset alongside ETH:
 - **Mock mode**: USDC balance is seeded at 250.00 USDC with a seed receive transaction
 - **Testnet mode**: If `NEXT_PUBLIC_USDC_ADDRESS` is set, the app reads the real ERC-20 balance and sends via `transfer()` with 6 decimals. If the address is not configured or the call fails, it falls back to mocked balances
-- USDC is not available in Abstracted mode — it is crypto-mode only
 
 ### Forcing a Mode
 
-Set `NEXT_PUBLIC_DEMO_FORCE_MODE=crypto` (or `abstracted`) to lock the interface to a single mode. When forced, the toggle is hidden. This is useful for demos where you want to show only one experience.
-
-The selected mode persists across page refresh via localStorage.
+Set `NEXT_PUBLIC_DEMO_FORCE_MODE=crypto` (or `abstracted`) to lock the interface to a single mode. When forced, the toggle is hidden.
 
 ## Mock Mode vs Testnet Mode
 
@@ -101,7 +110,7 @@ All transactions are simulated in-memory. The app seeds each new user with:
 - Seed transactions (deposits)
 - 3 pre-seeded recipients (Abstracted mode)
 
-Send and receive operations update the in-memory balance. Data resets on server restart. This mode requires no blockchain interaction and works without testnet funds.
+Send and receive operations update the in-memory balance. Data resets on server restart.
 
 ### Testnet Mode
 
@@ -111,88 +120,77 @@ When `NEXT_PUBLIC_ENABLE_TESTNET_MODE=true`:
 - In Crypto mode, sends attempt real onchain transactions (ETH via `sendTransaction`, USDC via ERC-20 `transfer`)
 - Transaction hashes are displayed with links to the block explorer
 
-Testnet mode is **additive** — it doesn't replace the mock flow in Abstracted mode. The standard send/receive operations remain mocked for reliability.
-
-To use testnet mode, the embedded wallet needs Base Sepolia ETH. You can get testnet ETH from a Base Sepolia faucet.
-
-## Terminology
-
-This project uses "onchain" (one word, no hyphen) consistently — not "on-chain" or "on chain".
-
 ## Architecture
 
 ```
 app/
-  page.tsx              → Main wallet view (balance, activity, modals)
-  login/page.tsx        → Privy email authentication
-  send/page.tsx         → Redirect to /
-  receive/page.tsx      → Redirect to /
-  settings/page.tsx     → Redirect to /
+  layout.tsx                      → Root layout (Providers only, no shell)
+  (standalone)/
+    layout.tsx                    → AppShell wrapper (header + sidebar + footer)
+    page.tsx                      → Standalone wallet (BrandingProvider + AuthGuard + WalletDashboard)
+    login/page.tsx                → Privy email authentication
+    send/page.tsx                 → Redirect to /
+    receive/page.tsx              → Redirect to /
+    settings/page.tsx             → Redirect to /
+  (embedded)/
+    gusto/page.tsx                → Gusto host shell embedding PrivyWalletWidget
   api/
-    user/route.ts       → User CRUD
-    transactions/route.ts → Transaction CRUD + balance mutation (abstracted + crypto)
-    statements/route.ts → CSV export
-    recipients/route.ts → Recipient list
+    user/route.ts                 → User CRUD
+    transactions/route.ts         → Transaction CRUD + balance mutation
+    statements/route.ts           → CSV export
+    recipients/route.ts           → Recipient list
 
 components/
-  Providers.tsx         → PrivyProvider + InterfaceModeProvider wrapper
-  AuthGuard.tsx         → Auth redirect guard
-  AppShell.tsx          → Sidebar + header (title + mode toggle) + main content
-  Sidebar.tsx           → Wallet / Settings navigation
-  Modal.tsx             → Shared modal with focus trap, escape, X button
-  ModeToggle.tsx        → Abstracted/Crypto pill-style toggle
-  SettingsView.tsx      → Settings content (display name, debug toggle, logout)
-  BalanceCard.tsx       → USD balance display
-  ActionButtons.tsx     → Send / Receive / Statements (callbacks, not links)
-  TransactionList.tsx   → Activity list
-  TransactionRow.tsx    → Single transaction row
-  SendFlow.tsx          → 4-step send wizard (abstracted)
-  DebugPanel.tsx        → Wallet address (hidden by default)
+  PrivyWalletWidget/
+    widgetTypes.ts                → BrandingConfig, SurfaceStyle, WidgetProps types
+    BrandingContext.tsx            → React Context + useBranding() + useCompact() hooks
+    WidgetFrame.tsx               → Card container (branded header, mode toggle, footer)
+    WidgetAuth.tsx                → Inline sign-in panel
+    WalletDashboard.tsx           → Dashboard logic (data fetching, state, modals, polling)
+    PrivyWalletWidget.tsx         → Composition root
+    index.ts                      → Barrel exports
+
+  Providers.tsx                   → PrivyProvider + InterfaceModeProvider
+  AuthGuard.tsx                   → Auth redirect guard
+  AppShell.tsx                    → Sidebar + header + footer (standalone only)
+  Sidebar.tsx                     → Wallet / Settings nav + Gusto Demo link
+  Modal.tsx                       → Focus-trapped modal overlay
+  ModeToggle.tsx                  → Abstracted/Crypto toggle (used in both AppShell and WidgetFrame)
+  BalanceCard.tsx                 → USD balance (compact-aware)
+  ActionButtons.tsx               → Send / Receive buttons (compact-aware)
+  TransactionList.tsx             → Activity list (compact-aware)
+  TransactionRow.tsx              → Transaction row (compact-aware)
+  SendFlow.tsx                    → 4-step send wizard (branding-aware)
+  SettingsView.tsx                → Settings content
+  DebugPanel.tsx                  → Wallet address debug info
 
   crypto/
-    CryptoAssetSelector.tsx    → ETH / USDC pill-style selector
-    CryptoBalanceCard.tsx      → Balance for selected asset + address + network badge
-    CryptoActionButtons.tsx    → Send / Receive buttons (callbacks, not links)
-    CryptoTransactionList.tsx  → "Onchain Activity" list
-    CryptoTransactionRow.tsx   → Tx row with address, asset, amount, tx hash link
-    CryptoSendFlow.tsx         → 4-step crypto send wizard (ETH or USDC)
-    CryptoReceive.tsx          → Wallet address display + copy button + asset badge
+    CryptoBalanceCard.tsx         → Unified USD balance + token breakdown (compact-aware)
+    CryptoActionButtons.tsx       → Send / Receive buttons (compact-aware)
+    CryptoTransactionList.tsx     → Onchain activity list (compact-aware)
+    CryptoTransactionRow.tsx      → Tx row with hash link (compact-aware)
+    CryptoSendFlow.tsx            → Crypto send wizard (branding-aware)
+    CryptoReceive.tsx             → Address display + copy
+    CopyableAddress.tsx           → Truncated address with copy-on-click
 
 lib/
-  config.ts             → Branding + feature flags + force mode + USDC address
-  mode.ts               → InterfaceMode context, provider, useInterfaceMode hook
-  mockStore.ts          → In-memory data store (USD/abstracted)
-  cryptoMockStore.ts    → In-memory data store (ETH + USDC / crypto)
-  types.ts              → TypeScript interfaces (including CryptoAsset)
-  wallet.ts             → Testnet transaction helpers (ETH + USDC ERC-20)
-  utils.ts              → Formatting utilities
+  branding.ts                     → Branding presets (privyDefaultBranding, gustoBranding)
+  config.ts                       → Feature flags + testnet config
+  mode.ts                         → InterfaceMode context + provider
+  mockStore.ts                    → In-memory store (USD/abstracted)
+  cryptoMockStore.ts              → In-memory store (ETH + USDC)
+  types.ts                        → TypeScript interfaces
+  wallet.ts                       → Testnet transaction helpers
+  utils.ts                        → Formatting utilities
 ```
 
 ## Tech Stack
 
-- **Next.js 15** (App Router)
+- **Next.js** (App Router with route groups)
 - **TypeScript**
 - **TailwindCSS 4**
 - **Privy React SDK** (`@privy-io/react-auth`)
 - **ethers.js v6** (testnet mode only)
-
-## Configuration
-
-Branding and feature flags are configured in `lib/config.ts`:
-
-```typescript
-{
-  logoText: 'Privy Wallet',
-  primaryColor: '#6851FF',
-  customerName: 'Acme Corp',
-  enableTestnetMode: false,
-  testnet: {
-    usdcAddress: '',  // Set via NEXT_PUBLIC_USDC_ADDRESS
-    // ...
-  },
-  // ...
-}
-```
 
 ## Scope Constraints
 
