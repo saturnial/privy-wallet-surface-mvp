@@ -67,6 +67,26 @@ export default function GustoPage() {
           <div className="max-w-md">
             <PrivyWalletWidget branding={gustoBranding} />
           </div>
+
+          {/* Embed configuration panel */}
+          <div className="mt-8 max-w-md">
+            <div className="bg-gray-900 rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-700">
+                <span className="text-xs font-medium text-gray-400">Embed Configuration</span>
+                <span className="text-[10px] font-mono text-gray-500">BrandingConfig</span>
+              </div>
+              <pre className="p-4 text-sm font-mono text-gray-300 overflow-x-auto">
+                <code>{`<PrivyWalletWidget
+  branding={{
+    brandName:          "${gustoBranding.brandName}"
+    primaryColor:       "${gustoBranding.primaryColor}"
+    surfaceStyle:       "${gustoBranding.surfaceStyle}"
+    customerSupportUrl: "${gustoBranding.customerSupportUrl}"
+  }}
+/>`}</code>
+              </pre>
+            </div>
+          </div>
         </main>
       </div>
     </div>
