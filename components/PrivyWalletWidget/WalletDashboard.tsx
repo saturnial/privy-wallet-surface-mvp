@@ -97,6 +97,7 @@ export default function WalletDashboard({
       });
       const user: User = await res.json();
       setAppUser(user);
+      lastUserJson.current = JSON.stringify(user);
       await loadAllData(user.id);
       setLoading(false);
     };
@@ -115,6 +116,11 @@ export default function WalletDashboard({
       const res = await fetch(`/api/user?email=${encodeURIComponent(appUser.email)}`);
       if (res.ok) {
         const user: User = await res.json();
+        // Merge walletAddress from locally-known user if API returned empty
+        // (cold-start instances create users with empty walletAddress)
+        if (!user.walletAddress && appUser.walletAddress) {
+          user.walletAddress = appUser.walletAddress;
+        }
         const uJson = JSON.stringify(user);
         if (uJson !== lastUserJson.current) {
           lastUserJson.current = uJson;

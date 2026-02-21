@@ -1,5 +1,5 @@
 import { User, Recipient, Transaction } from './types';
-import { generateId } from './utils';
+import { generateId, deterministicId } from './utils';
 import { config } from './config';
 
 // Persist in-memory data across Next.js HMR in development
@@ -50,12 +50,12 @@ function ensureUser(email: string): User {
   if (existing) return existing;
 
   const user: User = {
-    id: generateId(),
+    id: deterministicId('user:' + email),
     email,
     walletAddress: '',
     displayName: email.split('@')[0],
     balanceCents: config.defaultBalanceCents,
-    createdAt: new Date().toISOString(),
+    createdAt: '2025-06-01T00:00:00Z',
   };
   users.set(email, user);
   seedTransactions(user.id);
@@ -88,12 +88,12 @@ export function createUser(data: {
   }
 
   const user: User = {
-    id: generateId(),
+    id: deterministicId('user:' + data.email),
     email: data.email,
     walletAddress: data.walletAddress,
     displayName: data.displayName || data.email.split('@')[0],
     balanceCents: config.defaultBalanceCents,
-    createdAt: new Date().toISOString(),
+    createdAt: '2025-06-01T00:00:00Z',
   };
   users.set(data.email, user);
   seedTransactions(user.id);

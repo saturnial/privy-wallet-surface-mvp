@@ -1,3 +1,9 @@
+import { createHash } from 'crypto';
+
+export function deterministicId(seed: string): string {
+  return createHash('sha256').update(seed).digest('hex').substring(0, 12);
+}
+
 export function formatCurrency(cents: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
