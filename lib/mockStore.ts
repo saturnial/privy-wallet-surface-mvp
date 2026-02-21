@@ -25,20 +25,20 @@ const recipients: Recipient[] = [
 function seedTransactions(userId: string): Transaction[] {
   const txns: Transaction[] = [
     {
-      id: generateId(),
+      id: `${userId}-seed-1`,
       userId,
       type: 'receive',
       amountCents: 100000,
       counterpartyLabel: 'Initial Deposit',
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      createdAt: '2025-06-10T10:00:00Z',
     },
     {
-      id: generateId(),
+      id: `${userId}-seed-2`,
       userId,
       type: 'receive',
       amountCents: 25000,
       counterpartyLabel: 'Acme Corp',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      createdAt: '2025-06-12T10:00:00Z',
     },
   ];
   transactions.set(userId, txns);

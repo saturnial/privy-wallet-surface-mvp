@@ -27,15 +27,6 @@ function fakeTxHash(): string {
   return hash;
 }
 
-function fakeAddress(): string {
-  const hex = '0123456789abcdef';
-  let addr = '0x';
-  for (let i = 0; i < 40; i++) {
-    addr += hex[Math.floor(Math.random() * 16)];
-  }
-  return addr;
-}
-
 function ensureUser(userId: string): CryptoUserData {
   let data = cryptoUsers.get(userId);
   if (data) return data;
@@ -45,37 +36,37 @@ function ensureUser(userId: string): CryptoUserData {
     balanceUsdc: '250.00',
     transactions: [
       {
-        id: generateId(),
+        id: `${userId}-crypto-seed-1`,
         userId,
         type: 'receive',
         asset: 'ETH',
         amount: '0.5000',
-        address: fakeAddress(),
-        txHash: fakeTxHash(),
+        address: '0xabc1230000000000000000000000000000000001',
+        txHash: '0xdead000000000000000000000000000000000000000000000000000000000001',
         network: 'Base Sepolia',
-        createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+        createdAt: '2025-06-10T10:00:00Z',
       },
       {
-        id: generateId(),
+        id: `${userId}-crypto-seed-2`,
         userId,
         type: 'receive',
         asset: 'ETH',
         amount: '0.1000',
-        address: fakeAddress(),
-        txHash: fakeTxHash(),
+        address: '0xabc1230000000000000000000000000000000002',
+        txHash: '0xdead000000000000000000000000000000000000000000000000000000000002',
         network: 'Base Sepolia',
-        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        createdAt: '2025-06-11T10:00:00Z',
       },
       {
-        id: generateId(),
+        id: `${userId}-crypto-seed-3`,
         userId,
         type: 'receive',
         asset: 'USDC',
         amount: '250.00',
-        address: fakeAddress(),
-        txHash: fakeTxHash(),
+        address: '0xabc1230000000000000000000000000000000003',
+        txHash: '0xdead000000000000000000000000000000000000000000000000000000000003',
         network: 'Base Sepolia',
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        createdAt: '2025-06-12T10:00:00Z',
       },
     ],
   };
