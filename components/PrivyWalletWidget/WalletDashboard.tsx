@@ -1,7 +1,7 @@
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Modal from '@/components/Modal';
 import BalanceCard from '@/components/BalanceCard';
 import ActionButtons from '@/components/ActionButtons';
@@ -42,17 +42,31 @@ export default function WalletDashboard({
   const [depositLoading, setDepositLoading] = useState(false);
   const [deposited, setDeposited] = useState(false);
 
+  // Track last-seen JSON to skip no-op state updates
+  const lastTxJson = useRef('');
+  const lastCryptoJson = useRef('');
+
   const loadAllData = useCallback(async (userId: string) => {
     const [txRes, cryptoRes] = await Promise.all([
       fetch(`/api/transactions?userId=${userId}`),
       fetch(`/api/transactions?userId=${userId}&mode=crypto`),
     ]);
+
     const txns = await txRes.json();
-    setTransactions(txns);
+    const txJson = JSON.stringify(txns);
+    if (txJson !== lastTxJson.current) {
+      lastTxJson.current = txJson;
+      setTransactions(txns);
+    }
+
     const cryptoData = await cryptoRes.json();
-    setCryptoBalanceEth(cryptoData.balanceEth);
-    setCryptoBalanceUsdc(cryptoData.balanceUsdc);
-    setCryptoTransactions(cryptoData.transactions);
+    const cJson = JSON.stringify(cryptoData);
+    if (cJson !== lastCryptoJson.current) {
+      lastCryptoJson.current = cJson;
+      setCryptoBalanceEth(cryptoData.balanceEth);
+      setCryptoBalanceUsdc(cryptoData.balanceUsdc);
+      setCryptoTransactions(cryptoData.transactions);
+    }
   }, []);
 
   const fetchUser = useCallback(async () => {
@@ -91,6 +105,8 @@ export default function WalletDashboard({
   }, [privyUser, loadAllData]);
 
   // Poll for fresh data every 3 seconds
+  const lastUserJson = useRef('');
+
   useEffect(() => {
     if (!appUser) return;
 
@@ -99,7 +115,11 @@ export default function WalletDashboard({
       const res = await fetch(`/api/user?email=${encodeURIComponent(appUser.email)}`);
       if (res.ok) {
         const user: User = await res.json();
-        setAppUser(user);
+        const uJson = JSON.stringify(user);
+        if (uJson !== lastUserJson.current) {
+          lastUserJson.current = uJson;
+          setAppUser(user);
+        }
       }
     }, 3000);
 
