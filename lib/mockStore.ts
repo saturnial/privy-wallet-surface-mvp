@@ -22,8 +22,48 @@ const recipients: Recipient[] = [
   { id: 'r3', name: 'Global Payments Inc', nickname: 'gpi', createdAt: '2025-03-10T10:00:00Z' },
 ];
 
+function seedTransactions(userId: string): Transaction[] {
+  const txns: Transaction[] = [
+    {
+      id: generateId(),
+      userId,
+      type: 'receive',
+      amountCents: 100000,
+      counterpartyLabel: 'Initial Deposit',
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    },
+    {
+      id: generateId(),
+      userId,
+      type: 'receive',
+      amountCents: 25000,
+      counterpartyLabel: 'Acme Corp',
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+  ];
+  transactions.set(userId, txns);
+  return txns;
+}
+
+function ensureUser(email: string): User {
+  const existing = users.get(email);
+  if (existing) return existing;
+
+  const user: User = {
+    id: generateId(),
+    email,
+    walletAddress: '',
+    displayName: email.split('@')[0],
+    balanceCents: config.defaultBalanceCents,
+    createdAt: new Date().toISOString(),
+  };
+  users.set(email, user);
+  seedTransactions(user.id);
+  return user;
+}
+
 export function getUser(email: string): User | undefined {
-  return users.get(email);
+  return users.get(email) || ensureUser(email);
 }
 
 export function getUserById(id: string): User | undefined {
@@ -39,7 +79,13 @@ export function createUser(data: {
   displayName?: string;
 }): User {
   const existing = users.get(data.email);
-  if (existing) return existing;
+  if (existing) {
+    // Update walletAddress if it was missing (cold-start ensureUser creates with empty address)
+    if (!existing.walletAddress && data.walletAddress) {
+      existing.walletAddress = data.walletAddress;
+    }
+    return existing;
+  }
 
   const user: User = {
     id: generateId(),
@@ -50,26 +96,7 @@ export function createUser(data: {
     createdAt: new Date().toISOString(),
   };
   users.set(data.email, user);
-
-  const seedTxns: Transaction[] = [
-    {
-      id: generateId(),
-      userId: user.id,
-      type: 'receive',
-      amountCents: 100000,
-      counterpartyLabel: 'Initial Deposit',
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    },
-    {
-      id: generateId(),
-      userId: user.id,
-      type: 'receive',
-      amountCents: 25000,
-      counterpartyLabel: 'Acme Corp',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ];
-  transactions.set(user.id, seedTxns);
+  seedTransactions(user.id);
 
   return user;
 }
@@ -89,6 +116,9 @@ export function getRecipients(): Recipient[] {
 }
 
 export function getTransactions(userId: string): Transaction[] {
+  if (!transactions.has(userId)) {
+    seedTransactions(userId);
+  }
   return (transactions.get(userId) || []).slice().sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
