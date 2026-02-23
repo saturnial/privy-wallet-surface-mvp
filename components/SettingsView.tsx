@@ -14,6 +14,7 @@ export default function SettingsView() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [debugVisible, setDebugVisible] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const fetchUser = useCallback(async () => {
     if (!privyUser?.email?.address) return;
@@ -56,6 +57,16 @@ export default function SettingsView() {
     const next = !debugVisible;
     setDebugVisible(next);
     localStorage.setItem('debug_panel_visible', String(next));
+  };
+
+  const handleReset = async () => {
+    if (!privyUser?.email?.address) return;
+    if (!confirm('Reset all demo data? This will restore your account to its initial state.')) return;
+    setResetting(true);
+    await fetch(`/api/user?email=${encodeURIComponent(privyUser.email.address)}`, {
+      method: 'DELETE',
+    });
+    window.location.reload();
   };
 
   const handleLogout = async () => {
@@ -109,6 +120,14 @@ export default function SettingsView() {
           </button>
         </div>
       </div>
+
+      <button
+        onClick={handleReset}
+        disabled={resetting}
+        className="w-full py-3 rounded-xl text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors mb-3 disabled:opacity-50"
+      >
+        {resetting ? 'Resetting...' : 'Reset Demo'}
+      </button>
 
       <button
         onClick={handleLogout}

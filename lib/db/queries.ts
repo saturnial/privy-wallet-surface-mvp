@@ -147,6 +147,17 @@ export async function createUser(data: {
   return rowToUser(row);
 }
 
+export async function resetUser(email: string): Promise<User> {
+  const existing = await getUser(email);
+  if (existing) {
+    const db = getDb();
+    await db.delete(cryptoTransactions).where(eq(cryptoTransactions.userId, existing.id));
+    await db.delete(transactions).where(eq(transactions.userId, existing.id));
+    await db.delete(users).where(eq(users.id, existing.id));
+  }
+  return createUser({ email, walletAddress: '', displayName: email.split('@')[0] });
+}
+
 export async function updateUser(
   email: string,
   updates: Partial<Pick<User, 'displayName' | 'walletAddress'>>

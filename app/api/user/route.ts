@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUser, createUser, updateUser } from '@/lib/db/queries';
+import { getUser, createUser, updateUser, resetUser } from '@/lib/db/queries';
 
 export async function GET(request: NextRequest) {
   const email = request.nextUrl.searchParams.get('email');
@@ -10,6 +10,15 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
+  return NextResponse.json(user);
+}
+
+export async function DELETE(request: NextRequest) {
+  const email = request.nextUrl.searchParams.get('email');
+  if (!email) {
+    return NextResponse.json({ error: 'email required' }, { status: 400 });
+  }
+  const user = await resetUser(email);
   return NextResponse.json(user);
 }
 
