@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getRecipients } from '@/lib/mockStore';
+import { getRecipients } from '@/lib/db/queries';
 
 export async function GET() {
-  return NextResponse.json(getRecipients());
+  const recipients = await getRecipients();
+  return NextResponse.json(recipients);
 }

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUser, createUser, updateUser } from '@/lib/mockStore';
+import { getUser, createUser, updateUser } from '@/lib/db/queries';
 
 export async function GET(request: NextRequest) {
   const email = request.nextUrl.searchParams.get('email');
   if (!email) {
     return NextResponse.json({ error: 'email required' }, { status: 400 });
   }
-  const user = getUser(email);
+  const user = await getUser(email);
   if (!user) {
     return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
@@ -21,15 +21,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'email required' }, { status: 400 });
   }
 
-  const existing = getUser(email);
+  const existing = await getUser(email);
   if (existing) {
     if (displayName) {
-      const updated = updateUser(email, { displayName });
+      const updated = await updateUser(email, { displayName });
       return NextResponse.json(updated);
     }
     return NextResponse.json(existing);
   }
 
-  const user = createUser({ email, walletAddress: walletAddress || '', displayName });
+  const user = await createUser({ email, walletAddress: walletAddress || '', displayName });
   return NextResponse.json(user, { status: 201 });
 }

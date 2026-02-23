@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTransactions, createTransaction } from '@/lib/mockStore';
-import { getCryptoData, createCryptoTransaction } from '@/lib/cryptoMockStore';
+import { getTransactions, createTransaction, getCryptoData, createCryptoTransaction } from '@/lib/db/queries';
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get('userId');
@@ -11,11 +10,11 @@ export async function GET(request: NextRequest) {
   const mode = request.nextUrl.searchParams.get('mode');
 
   if (mode === 'crypto') {
-    const data = getCryptoData(userId);
+    const data = await getCryptoData(userId);
     return NextResponse.json(data);
   }
 
-  const txns = getTransactions(userId);
+  const txns = await getTransactions(userId);
   return NextResponse.json(txns);
 }
 
@@ -28,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!userId || !type || !amount || !address) {
       return NextResponse.json({ error: 'missing fields' }, { status: 400 });
     }
-    const result = createCryptoTransaction({
+    const result = await createCryptoTransaction({
       userId,
       type,
       asset: asset || 'ETH',
@@ -48,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'missing fields' }, { status: 400 });
   }
 
-  const result = createTransaction({
+  const result = await createTransaction({
     userId,
     type,
     amountCents,

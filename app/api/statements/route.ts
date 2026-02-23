@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTransactions } from '@/lib/mockStore';
+import { getTransactions } from '@/lib/db/queries';
 import { formatCurrency } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'userId required' }, { status: 400 });
   }
 
-  const txns = getTransactions(userId);
+  const txns = await getTransactions(userId);
 
   const csvRows = [
     'Date,Type,Amount,Counterparty,Reference',
